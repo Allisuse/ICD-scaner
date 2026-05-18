@@ -1,36 +1,35 @@
 <!DOCTYPE html>
 <html lang="th">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
 <title>ICD Volume Scanner</title>
+
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{
   --bg:#0a0d12;
   --surface:#131720;
-  --surface2:#1c2130;
-  --border:rgba(255,255,255,0.08);
-  --border2:rgba(255,255,255,0.15);
+  --border:rgba(255,255,255,0.12);
   --text:#f0f4ff;
-  --muted:rgba(240,244,255,0.45);
+  --muted:rgba(240,244,255,0.55);
   --danger:#f43f5e;
   --success:#22c55e;
   --warn:#f59e0b;
   font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;
 }
-body,html{width:100%;height:100%;background:var(--bg);color:var(--text);overflow:hidden}
+html,body{width:100%;height:100%;background:var(--bg);color:var(--text);overflow:hidden}
+
 .screen{position:absolute;inset:0;display:none;flex-direction:column;align-items:center}
 .screen.active{display:flex}
 
-/* ── CAMERA ── */
+/* CAMERA */
 #screen-camera{background:#000;justify-content:space-between}
 #camera-view{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
 
 #dim-canvas{position:absolute;inset:0;width:100%;height:100%;z-index:2;pointer-events:none}
-
 #viewfinder{position:absolute;z-index:3}
-#vf-svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
+#vf-svg{position:absolute;inset:0;width:100%;height:100%}
 
 .cam-top{
   position:relative;z-index:10;width:100%;
@@ -39,8 +38,12 @@ body,html{width:100%;height:100%;background:var(--bg);color:var(--text);overflow
 }
 .cam-top h1{font-size:15px;font-weight:600;color:#fff}
 .cap-badge{
-  background:rgba(0,0,0,0.6);border:1px solid rgba(255,255,255,0.2);
-  border-radius:20px;padding:5px 13px;font-size:13px;color:rgba(255,255,255,0.85);
+  background:rgba(0,0,0,0.65);
+  border:1px solid rgba(255,255,255,0.2);
+  border-radius:20px;
+  padding:5px 13px;
+  font-size:13px;
+  color:rgba(255,255,255,0.9);
 }
 
 .cam-bottom{
@@ -51,103 +54,98 @@ body,html{width:100%;height:100%;background:var(--bg);color:var(--text);overflow
 
 .legend-row{
   display:flex;gap:16px;align-items:center;
-  background:rgba(0,0,0,0.6);border:1px solid rgba(255,255,255,0.1);
-  border-radius:30px;padding:7px 18px;font-size:12px;
+  background:rgba(0,0,0,0.65);
+  border:1px solid rgba(255,255,255,0.12);
+  border-radius:30px;
+  padding:7px 18px;
+  font-size:12px;
 }
 .dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:5px;vertical-align:middle}
 
 .controls-row{display:flex;align-items:center;gap:14px}
 .cap-pill{
-  background:rgba(0,0,0,0.55);border:1px solid rgba(255,255,255,0.18);
-  border-radius:30px;padding:9px 16px;display:flex;align-items:center;gap:8px;
+  background:rgba(0,0,0,0.55);
+  border:1px solid rgba(255,255,255,0.18);
+  border-radius:30px;
+  padding:9px 16px;
+  display:flex;align-items:center;gap:8px;
 }
-.cap-pill label{font-size:12px;color:rgba(255,255,255,0.6);white-space:nowrap}
+.cap-pill label{font-size:12px;color:rgba(255,255,255,0.65);white-space:nowrap}
 .cap-pill input{
   background:transparent;border:none;outline:none;
   color:#fff;font-size:15px;font-weight:600;width:55px;text-align:right;
 }
 .cap-pill span{font-size:12px;color:rgba(255,255,255,0.4)}
 
-#upload-btn{
-  width:46px;height:46px;border-radius:50%;
-  background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.22);
-  cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:19px;
-}
-#upload-btn:active{opacity:0.5}
-
 #capture-btn{
   width:66px;height:66px;border-radius:50%;
   background:#fff;border:3px solid rgba(255,255,255,0.3);
   cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:24px;
-  box-shadow:0 0 0 7px rgba(255,255,255,0.07);transition:transform 0.12s;
+  box-shadow:0 0 0 7px rgba(255,255,255,0.07);
+  transition:transform 0.12s;
 }
 #capture-btn:active{transform:scale(0.88)}
+
+#upload-btn{
+  width:46px;height:46px;border-radius:50%;
+  background:rgba(255,255,255,0.1);
+  border:1px solid rgba(255,255,255,0.22);
+  cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:19px;
+}
+#upload-btn:active{opacity:0.5}
+
 #file-input{display:none}
 
-/* ── RESULT ── */
+/* RESULT */
 #screen-result{background:var(--bg);overflow-y:auto;display:none;flex-direction:column;align-items:stretch}
-
 .preview-wrap{position:relative;width:100%;flex-shrink:0}
 #preview-img{width:100%;aspect-ratio:1/1;object-fit:cover;display:block}
-.preview-grad{position:absolute;inset:0;background:linear-gradient(transparent 55%,var(--bg));pointer-events:none}
+
 .preview-badge{
   position:absolute;bottom:12px;right:12px;
-  background:rgba(0,0,0,0.7);border:1px solid rgba(255,255,255,0.15);
-  border-radius:20px;padding:5px 12px;font-size:12px;color:rgba(255,255,255,0.8);
+  background:rgba(0,0,0,0.7);
+  border:1px solid rgba(255,255,255,0.15);
+  border-radius:20px;padding:5px 12px;
+  font-size:12px;color:rgba(255,255,255,0.8);
 }
 
 .result-body{padding:14px 16px 52px}
 
-#loading-state{display:flex;flex-direction:column;align-items:center;gap:14px;padding:40px 0}
-.spinner{
-  width:38px;height:38px;border:2px solid rgba(255,255,255,0.1);
-  border-top-color:#60a5fa;border-radius:50%;animation:spin 0.75s linear infinite;
-}
-@keyframes spin{to{transform:rotate(360deg)}}
-#loading-state p{font-size:14px;color:var(--muted)}
-
-#result-cards{display:none}
-.sec-lbl{font-size:10px;letter-spacing:0.9px;text-transform:uppercase;color:var(--muted);margin-bottom:9px}
-
-.stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:9px}
+.stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:12px}
 .stat-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:13px}
 .stat-card .lbl{font-size:11px;color:var(--muted);margin-bottom:5px}
 .stat-card .val{font-size:28px;font-weight:700;display:flex;align-items:baseline;gap:3px}
 .stat-card .val .u{font-size:13px;font-weight:400;color:var(--muted)}
 
-.gauge-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px;margin-bottom:9px}
-.gauge-track{position:relative;height:10px;background:rgba(255,255,255,0.08);border-radius:99px;margin:22px 0 8px;overflow:visible}
-.gauge-fill{height:100%;border-radius:99px;background:var(--success);transition:width 0.65s cubic-bezier(.25,.46,.45,.94)}
-.gauge-fill.danger{background:var(--danger)}
-.gauge-fill.warn{background:var(--warn)}
-.gm-lbl{position:absolute;top:-19px;transform:translateX(-50%);font-size:9px;font-weight:600;white-space:nowrap;padding:2px 5px;border-radius:4px}
-.gm-line{position:absolute;top:-8px;bottom:-8px;width:2px;border-radius:1px;transform:translateX(-50%);opacity:0.65}
-.gauge-legend{display:flex;justify-content:space-between;font-size:10px;color:var(--muted);margin-top:4px}
+.btn-row{display:flex;gap:10px;margin-top:14px}
+.btn{flex:1;padding:15px;border-radius:14px;font-size:15px;font-weight:600;border:none;cursor:pointer}
+.btn-primary{background:var(--text);color:#0a0d12}
+.btn-secondary{background:#1c2130;color:var(--text);border:1px solid rgba(255,255,255,0.15)}
 
-.zone-banner{display:none;border-radius:10px;padding:9px 13px;font-size:13px;font-weight:500;margin-top:10px;border:1px solid}
-.zone-banner.danger{background:rgba(244,63,94,0.1);border-color:rgba(244,63,94,0.3);color:#fb7185}
-.zone-banner.ok{background:rgba(34,197,94,0.08);border-color:rgba(34,197,94,0.25);color:#4ade80}
-
-.analysis-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px;margin-bottom:9px}
-.analysis-card p{font-size:14px;line-height:1.65;color:rgba(240,244,255,0.75)}
+#loading-state{display:flex;flex-direction:column;align-items:center;gap:14px;padding:40px 0}
+.spinner{
+  width:38px;height:38px;border:2px solid rgba(255,255,255,0.1);
+  border-top-color:#60a5fa;border-radius:50%;
+  animation:spin 0.75s linear infinite;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+#loading-state p{font-size:14px;color:var(--muted)}
 
 #error-state{display:none;text-align:center;padding:40px 0}
-#error-state .icon{font-size:40px;margin-bottom:12px}
 #error-state p{font-size:14px;color:var(--muted);margin-bottom:20px}
-
-.btn-row{display:none;gap:10px;margin-top:14px}
-.btn{flex:1;padding:15px;border-radius:14px;font-size:15px;font-weight:600;border:none;cursor:pointer;transition:opacity 0.15s,transform 0.1s}
-.btn:active{opacity:0.7;transform:scale(0.97)}
-.btn-primary{background:var(--text);color:#0a0d12}
-.btn-secondary{background:var(--surface2);color:var(--text);border:1px solid var(--border2)}
 </style>
 </head>
+
 <body>
 
+<!-- CAMERA SCREEN -->
 <div id="screen-camera" class="screen active">
   <video id="camera-view" autoplay playsinline muted></video>
   <canvas id="dim-canvas"></canvas>
-  <div id="viewfinder"><svg id="vf-svg" xmlns="http://www.w3.org/2000/svg"></svg></div>
+
+  <div id="viewfinder">
+    <svg id="vf-svg" xmlns="http://www.w3.org/2000/svg"></svg>
+  </div>
 
   <div class="cam-top">
     <h1>ICD Volume Scanner</h1>
@@ -158,34 +156,39 @@ body,html{width:100%;height:100%;background:var(--bg);color:var(--text);overflow
     <div class="legend-row">
       <span><span class="dot" style="background:#ef4444"></span>100 มล.</span>
       <span><span class="dot" style="background:#22c55e"></span>900 มล.</span>
-      <span style="color:rgba(255,255,255,0.4);font-size:11px">จัดขวดให้อยู่ในกรอบ</span>
+      <span style="color:rgba(255,255,255,0.45);font-size:11px">จัดขวดให้อยู่ในกรอบ</span>
     </div>
+
     <div class="controls-row">
       <div class="cap-pill">
         <label>ขนาดขวด</label>
-        <input id="bottle-capacity" type="number" inputmode="numeric" value="1000">
+        <input id="bottle-capacity" type="number" inputmode="numeric" value="1000" />
         <span>มล.</span>
       </div>
+
       <button id="upload-btn" title="เลือกรูปจากคลัง">🖼</button>
       <button id="capture-btn" aria-label="ถ่ายภาพ">📷</button>
     </div>
   </div>
-  <input type="file" id="file-input" accept="image/*">
+
+  <input type="file" id="file-input" accept="image/*" />
 </div>
 
+<!-- RESULT SCREEN -->
 <div id="screen-result" class="screen">
   <div class="preview-wrap">
-    <img id="preview-img" alt="ICD bottle">
-    <div class="preview-grad"></div>
+    <img id="preview-img" alt="preview" />
     <div class="preview-badge" id="preview-badge">กำลังวิเคราะห์…</div>
   </div>
+
   <div class="result-body">
+
     <div id="loading-state">
       <div class="spinner"></div>
-      <p>AI กำลังวิเคราะห์ปริมาณน้ำใน ICD…</p>
+      <p>กำลังคำนวณระดับน้ำ…</p>
     </div>
-    <div id="result-cards">
-      <div class="sec-lbl">ผลการวิเคราะห์</div>
+
+    <div id="result-cards" style="display:none;">
       <div class="stat-grid">
         <div class="stat-card">
           <div class="lbl">ปริมาณน้ำที่เหลือ</div>
@@ -196,108 +199,102 @@ body,html{width:100%;height:100%;background:var(--bg);color:var(--text);overflow
           <div class="val" id="val-pct">—<span class="u">%</span></div>
         </div>
       </div>
-      <div class="gauge-card">
-        <div class="sec-lbl">ระดับน้ำในขวด</div>
-        <div class="gauge-track" id="gauge-track">
-          <div class="gauge-fill" id="gauge-fill" style="width:0%"></div>
-          <div class="gm-lbl" id="gml-lo" style="color:#ef4444;background:rgba(239,68,68,0.12)">100 มล.</div>
-          <div class="gm-line" id="gmr-lo" style="background:#ef4444"></div>
-          <div class="gm-lbl" id="gml-hi" style="color:#22c55e;background:rgba(34,197,94,0.12)">900 มล.</div>
-          <div class="gm-line" id="gmr-hi" style="background:#22c55e"></div>
-        </div>
-        <div class="gauge-legend"><span>0 มล.</span><span id="cap-legend">1000 มล.</span></div>
-        <div class="zone-banner" id="zone-banner"></div>
-      </div>
-      <div class="analysis-card">
-        <div class="sec-lbl">การวิเคราะห์จาก AI</div>
-        <p id="ai-text">—</p>
-      </div>
-      <div class="btn-row" id="btn-row">
+
+      <div class="btn-row">
         <button class="btn btn-secondary" onclick="retake()">📷 ถ่ายใหม่</button>
-        <button class="btn btn-primary"   onclick="saveResult()">💾 บันทึก</button>
+        <button class="btn btn-primary" onclick="saveResult()">💾 บันทึก</button>
       </div>
     </div>
+
     <div id="error-state">
-      <div class="icon">⚠️</div>
       <p id="error-msg">ไม่สามารถวิเคราะห์ภาพได้</p>
-      <button class="btn btn-primary" style="max-width:200px;margin:0 auto" onclick="retake()">ถ่ายใหม่</button>
+      <button class="btn btn-primary" style="max-width:220px;margin:0 auto" onclick="retake()">ถ่ายใหม่</button>
     </div>
+
   </div>
 </div>
 
-<canvas id="canvas" style="display:none"></canvas>
+<canvas id="snap-canvas" style="display:none;"></canvas>
 
 <script>
+/* =============================
+   CONFIG: PUT YOUR RENDER API
+   ============================= */
+const API_URL = "https://YOUR_RENDER_URL/analyze";
+/* Example:
+const API_URL = "https://icd-volume-backend.onrender.com/analyze";
+*/
+
 const video      = document.getElementById('camera-view');
 const dimC       = document.getElementById('dim-canvas');
 const dimCtx     = dimC.getContext('2d');
-const vf         = document.getElementById('viewfinder');
 const vfSvg      = document.getElementById('vf-svg');
+
 const capBtn     = document.getElementById('capture-btn');
 const upBtn      = document.getElementById('upload-btn');
 const fileInput  = document.getElementById('file-input');
-const snapC      = document.getElementById('canvas');
+
+const snapC      = document.getElementById('snap-canvas');
 const snapCtx    = snapC.getContext('2d');
+
 const screenCam  = document.getElementById('screen-camera');
 const screenRes  = document.getElementById('screen-result');
+
 const previewImg = document.getElementById('preview-img');
 const badge      = document.getElementById('preview-badge');
+
 const loadEl     = document.getElementById('loading-state');
 const cardsEl    = document.getElementById('result-cards');
 const errEl      = document.getElementById('error-state');
-const btnRow     = document.getElementById('btn-row');
 
 let lastCapMl = 1000;
 let lastResultText = '';
-let VF = {left:0, top:0, size:0}; // viewfinder rect in screen px
+
+let VF = {left:0, top:0, size:0};
 
 function layout(){
   const W = window.innerWidth;
   const H = window.innerHeight;
   dimC.width = W; dimC.height = H;
 
-  // square: 88% of narrower dimension, max 420px, centred slightly above middle
+  // viewfinder square
   VF.size = Math.min(W * 0.88, 420, H * 0.60);
   VF.left = (W - VF.size) / 2;
   VF.top  = (H - VF.size) / 2 - 24;
 
-  // dim mask
+  // dim outside
   dimCtx.clearRect(0,0,W,H);
   dimCtx.fillStyle = 'rgba(0,0,0,0.58)';
   dimCtx.fillRect(0,0,W,H);
   dimCtx.clearRect(VF.left, VF.top, VF.size, VF.size);
-
-  // position overlay div
-  Object.assign(vf.style, {
-    position:'absolute',
-    left: VF.left+'px', top: VF.top+'px',
-    width: VF.size+'px', height: VF.size+'px'
-  });
 
   renderVF();
 }
 
 function renderVF(){
   const S = VF.size;
-  // 900 ml = 13% from top of square (high fill level)
-  // 100 ml = 87% from top of square (low fill level)
-  const yHi = S * 0.13;
-  const yLo = S * 0.87;
-  const CW  = 22; // corner bracket length
+  const yHi = S * 0.13; // 900 ml line
+  const yLo = S * 0.87; // 100 ml line
+  const CW  = 22;
+
+  vfSvg.setAttribute("width", S);
+  vfSvg.setAttribute("height", S);
+  vfSvg.style.position = "absolute";
+  vfSvg.style.left = VF.left + "px";
+  vfSvg.style.top  = VF.top + "px";
 
   vfSvg.innerHTML = `
-    <polyline points="0,${CW} 0,0 ${CW},0"               fill="none" stroke="rgba(255,255,255,0.9)" stroke-width="2.5" stroke-linecap="round"/>
-    <polyline points="${S-CW},0 ${S},0 ${S},${CW}"         fill="none" stroke="rgba(255,255,255,0.9)" stroke-width="2.5" stroke-linecap="round"/>
-    <polyline points="0,${S-CW} 0,${S} ${CW},${S}"         fill="none" stroke="rgba(255,255,255,0.9)" stroke-width="2.5" stroke-linecap="round"/>
+    <polyline points="0,${CW} 0,0 ${CW},0" fill="none" stroke="rgba(255,255,255,0.9)" stroke-width="2.5" stroke-linecap="round"/>
+    <polyline points="${S-CW},0 ${S},0 ${S},${CW}" fill="none" stroke="rgba(255,255,255,0.9)" stroke-width="2.5" stroke-linecap="round"/>
+    <polyline points="0,${S-CW} 0,${S} ${CW},${S}" fill="none" stroke="rgba(255,255,255,0.9)" stroke-width="2.5" stroke-linecap="round"/>
     <polyline points="${S-CW},${S} ${S},${S} ${S},${S-CW}" fill="none" stroke="rgba(255,255,255,0.9)" stroke-width="2.5" stroke-linecap="round"/>
 
-    <!-- 900 ml green -->
     <line x1="0" y1="${yHi}" x2="${S}" y2="${yHi}" stroke="#22c55e" stroke-width="1.8" stroke-dasharray="9,5"/>
+    <line x1="0" y1="${yLo}" x2="${S}" y2="${yLo}" stroke="#ef4444" stroke-width="1.8" stroke-dasharray="9,5"/>
+
     <rect x="6" y="${yHi-20}" width="74" height="19" rx="5" fill="rgba(0,0,0,0.7)" stroke="rgba(34,197,94,0.45)" stroke-width="1"/>
     <text x="43" y="${yHi-8}" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="11" font-weight="600" fill="#22c55e">900 มล.</text>
 
-    <!-- 100 ml red -->
-    <line x1="0" y1="${yLo}" x2="${S}" y2="${yLo}" stroke="#ef4444" stroke-width="1.8" stroke-dasharray="9,5"/>
     <rect x="6" y="${yLo+2}" width="74" height="19" rx="5" fill="rgba(0,0,0,0.7)" stroke="rgba(239,68,68,0.45)" stroke-width="1"/>
     <text x="43" y="${yLo+14}" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="11" font-weight="600" fill="#ef4444">100 มล.</text>
   `;
@@ -306,139 +303,105 @@ function renderVF(){
 window.addEventListener('resize', layout);
 layout();
 
-// camera
-navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'}}})
-  .then(s=>{video.srcObject=s;video.onloadedmetadata=()=>video.play();})
-  .catch(()=>{});
-
-document.getElementById('bottle-capacity').addEventListener('input', e=>{
-  document.getElementById('cap-badge').textContent=(e.target.value||1000)+' มล.';
+/* CAMERA INIT */
+navigator.mediaDevices.getUserMedia({
+  video: { facingMode: { ideal: "environment" } }
+})
+.then(stream=>{
+  video.srcObject = stream;
+  video.onloadedmetadata = ()=>video.play();
+})
+.catch(()=>{
+  alert("ไม่สามารถเปิดกล้องได้ กรุณาอนุญาต Camera");
 });
 
-// capture — crop to square viewfinder
+/* capacity input */
+document.getElementById('bottle-capacity').addEventListener('input', e=>{
+  const v = parseInt(e.target.value || "1000");
+  document.getElementById('cap-badge').textContent = v + " มล.";
+});
+
+/* CAPTURE BUTTON */
 capBtn.addEventListener('click', ()=>{
-  lastCapMl = parseInt(document.getElementById('bottle-capacity').value)||1000;
+  lastCapMl = parseInt(document.getElementById('bottle-capacity').value) || 1000;
 
-  const vW = video.videoWidth||640, vH = video.videoHeight||480;
-  const sW = window.innerWidth,     sH = window.innerHeight;
-  const vAR = vW/vH, sAR = sW/sH;
-  let rW,rH,rX,rY;
-  if(vAR > sAR){ rH=sH; rW=sH*vAR; rX=(sW-rW)/2; rY=0; }
-  else          { rW=sW; rH=sW/vAR; rX=0; rY=(sH-rH)/2; }
+  const vW = video.videoWidth || 640;
+  const vH = video.videoHeight || 480;
 
-  const scale = vW/rW;
-  const cx = (VF.left-rX)*scale, cy = (VF.top-rY)*scale, cs = VF.size*scale;
-  snapC.width=Math.round(cs); snapC.height=Math.round(cs);
+  const sW = window.innerWidth;
+  const sH = window.innerHeight;
+
+  const vAR = vW / vH;
+  const sAR = sW / sH;
+
+  let rW, rH, rX, rY;
+
+  // calculate how video covers the screen (object-fit: cover)
+  if(vAR > sAR){
+    rH = sH;
+    rW = sH * vAR;
+    rX = (sW - rW) / 2;
+    rY = 0;
+  } else {
+    rW = sW;
+    rH = sW / vAR;
+    rX = 0;
+    rY = (sH - rH) / 2;
+  }
+
+  const scale = vW / rW;
+
+  const cx = (VF.left - rX) * scale;
+  const cy = (VF.top  - rY) * scale;
+  const cs = VF.size * scale;
+
+  snapC.width  = Math.round(cs);
+  snapC.height = Math.round(cs);
+
   snapCtx.drawImage(video, cx, cy, cs, cs, 0, 0, snapC.width, snapC.height);
 
-  go(snapC.toDataURL('image/jpeg',0.80));
+  const dataUrl = snapC.toDataURL("image/jpeg", 0.85);
+  go(dataUrl);
 });
 
-// upload
+/* UPLOAD IMAGE */
 upBtn.addEventListener('click', ()=>fileInput.click());
+
 fileInput.addEventListener('change', e=>{
-  const f=e.target.files[0]; if(!f) return;
-  lastCapMl=parseInt(document.getElementById('bottle-capacity').value)||1000;
-  const r=new FileReader();
-  r.onload=ev=>go(ev.target.result);
-  r.readAsDataURL(f);
-  fileInput.value='';
+  const f = e.target.files[0];
+  if(!f) return;
+
+  lastCapMl = parseInt(document.getElementById('bottle-capacity').value) || 1000;
+
+  const reader = new FileReader();
+  reader.onload = ev => go(ev.target.result);
+  reader.readAsDataURL(f);
+
+  fileInput.value = "";
 });
 
+/* GO TO RESULT SCREEN */
 function go(dataUrl){
-  previewImg.src=dataUrl;
-  badge.textContent='กำลังวิเคราะห์…';
-  screenCam.classList.remove('active');
-  screenRes.style.display='flex';
-  screenRes.classList.add('active');
-  loadEl.style.display='flex';
-  cardsEl.style.display='none';
-  errEl.style.display='none';
-  btnRow.style.display='none';
-  analyze(dataUrl.split(',')[1], lastCapMl);
+  previewImg.src = dataUrl;
+  badge.textContent = "กำลังวิเคราะห์…";
+
+  screenCam.classList.remove("active");
+  screenRes.style.display = "flex";
+  screenRes.classList.add("active");
+
+  loadEl.style.display = "flex";
+  cardsEl.style.display = "none";
+  errEl.style.display = "none";
+
+  analyze(dataUrl.split(",")[1], lastCapMl);
 }
 
+/* CALL BACKEND */
 async function analyze(b64, capMl){
-  const prompt=`You are analyzing an ICD (intercostal drainage) bottle photo (square crop).
-Bottle capacity: ${capMl} ml.
-The image has two fixed reference lines already baked in:
-  GREEN dashed line = 900 ml level  (near top of bottle)
-  RED   dashed line = 100 ml level  (near bottom of bottle)
-Use these two lines as your measurement scale.
-Return ONLY valid JSON, no markdown:
-{"fill_ml":<integer>,"fill_percent":<integer>,"confidence":"high"|"medium"|"low","notes":"<Thai, 1 clinical sentence>"}
-If no ICD bottle visible: {"error":"cannot_analyze","reason":"<Thai>"}`;
-
   try{
-    const res=await fetch('https://api.anthropic.com/v1/messages',{
-      method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({
-        model:'claude-haiku-4-5-20251001',max_tokens:200,
-        messages:[{role:'user',content:[
-          {type:'image',source:{type:'base64',media_type:'image/jpeg',data:b64}},
-          {type:'text',text:prompt}
-        ]}]
-      })
-    });
-    const data=await res.json();
-    const raw=(data.content||[]).map(b=>b.text||'').join('');
-    const parsed=JSON.parse(raw.replace(/```json|```/g,'').trim());
-    if(parsed.error){showErr(parsed.reason||'วิเคราะห์ไม่ได้');return;}
-    renderCards(parsed,capMl);
-  }catch(e){console.error(e);showErr('เกิดข้อผิดพลาดในการเชื่อมต่อ');}
-}
-
-function renderCards(d,capMl){
-  const ml =Math.min(capMl,Math.max(0,d.fill_ml??Math.round(capMl*(d.fill_percent||0)/100)));
-  const pct=Math.min(100,Math.max(0,Math.round(ml/capMl*100)));
-
-  document.getElementById('val-ml').innerHTML =`${ml}<span class="u">มล.</span>`;
-  document.getElementById('val-pct').innerHTML=`${pct}<span class="u">%</span>`;
-  document.getElementById('ai-text').textContent=d.notes||'—';
-  document.getElementById('cap-legend').textContent=`${capMl} มล.`;
-
-  const fill=document.getElementById('gauge-fill');
-  fill.style.width=pct+'%';
-  fill.className='gauge-fill'+(ml<100||ml>900?' danger':pct<50?' warn':'');
-
-  const loPct=Math.round(100*100/capMl);
-  const hiPct=Math.round(900*100/capMl);
-  document.getElementById('gml-lo').style.left=loPct+'%';
-  document.getElementById('gmr-lo').style.left=loPct+'%';
-  document.getElementById('gml-hi').style.left=hiPct+'%';
-  document.getElementById('gmr-hi').style.left=hiPct+'%';
-
-  const banner=document.getElementById('zone-banner');
-  if(ml<100){banner.style.display='block';banner.className='zone-banner danger';banner.textContent='⚠️ ต่ำกว่า 100 มล. — ควรตรวจสอบ';}
-  else if(ml>900){banner.style.display='block';banner.className='zone-banner danger';banner.textContent='⚠️ เกิน 900 มล. — ควรแจ้งแพทย์';}
-  else{banner.style.display='block';banner.className='zone-banner ok';banner.textContent='✓ ระดับน้ำอยู่ในช่วงปกติ (100–900 มล.)';}
-
-  badge.textContent='ความมั่นใจ: '+({high:'สูง',medium:'ปานกลาง',low:'ต่ำ'}[d.confidence]||'—');
-  lastResultText=`ICD ${ml} มล. (${pct}%) จากขวด ${capMl} มล.`;
-
-  loadEl.style.display='none';
-  cardsEl.style.display='block';
-  btnRow.style.display='flex';
-}
-
-function showErr(msg){
-  document.getElementById('error-msg').textContent=msg;
-  loadEl.style.display='none';errEl.style.display='block';
-  badge.textContent='วิเคราะห์ไม่สำเร็จ';
-}
-function retake(){
-  screenRes.classList.remove('active');screenRes.style.display='none';
-  screenCam.classList.add('active');
-}
-function saveResult(){
-  if(navigator.share)navigator.share({title:'ICD Scan',text:lastResultText}).catch(()=>{});
-  else alert('บันทึก: '+lastResultText);
-}
-  {async function analyze(b64, capMl){
-  try{
-    const res = await fetch("https://YOUR_RENDER_URL/analyze", {
-      method:"POST",
-      headers:{ "Content-Type":"application/json" },
+    const res = await fetch(API_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         image_b64: b64,
         capacity: capMl
@@ -448,22 +411,59 @@ function saveResult(){
     const parsed = await res.json();
 
     if(parsed.error){
-      showErr("ตรวจจับระดับน้ำไม่ได้");
+      showErr("ตรวจจับระดับน้ำไม่ได้ (ลองถ่ายใหม่ให้ชัดขึ้น)");
       return;
     }
 
-    renderCards({
-      fill_ml: parsed.fill_ml,
-      fill_percent: parsed.fill_percent,
-      confidence: "high",
-      notes: "ตรวจจับระดับน้ำจากภาพสำเร็จ"
-    }, capMl);
+    renderCards(parsed.fill_ml, parsed.fill_percent, capMl);
 
-  }catch(e){
-    console.error(e);
+  }catch(err){
+    console.error(err);
     showErr("เชื่อมต่อ Server ไม่ได้");
   }
+}
 
+/* RENDER RESULT */
+function renderCards(ml, pct, capMl){
+  ml = Math.min(capMl, Math.max(0, ml));
+  pct = Math.min(100, Math.max(0, pct));
+
+  document.getElementById("val-ml").innerHTML  = `${ml}<span class="u">มล.</span>`;
+  document.getElementById("val-pct").innerHTML = `${pct}<span class="u">%</span>`;
+
+  badge.textContent = "วิเคราะห์สำเร็จ";
+  lastResultText = `ICD เหลือ ${ml} มล. (${pct}%) จากขวด ${capMl} มล.`;
+
+  loadEl.style.display = "none";
+  cardsEl.style.display = "block";
+}
+
+/* ERROR */
+function showErr(msg){
+  document.getElementById("error-msg").textContent = msg;
+  badge.textContent = "วิเคราะห์ไม่สำเร็จ";
+  loadEl.style.display = "none";
+  errEl.style.display = "block";
+}
+
+/* BUTTONS */
+function retake(){
+  screenRes.classList.remove("active");
+  screenRes.style.display = "none";
+  screenCam.classList.add("active");
+}
+
+function saveResult(){
+  if(navigator.share){
+    navigator.share({
+      title: "ICD Scan",
+      text: lastResultText
+    }).catch(()=>{});
+  }else{
+    alert(lastResultText);
+  }
+}
 </script>
+
 </body>
 </html>
