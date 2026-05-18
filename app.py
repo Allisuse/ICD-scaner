@@ -75,4 +75,13 @@ def analyze(req: Req):
             "y_900": y_hi,
             "y_100": y_lo
         }
+        from fastapi.middleware.cors import CORSMiddleware
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
     }
