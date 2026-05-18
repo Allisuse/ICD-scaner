@@ -5,64 +5,575 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>ICD Scanner</title>
     <style>
-        body, html { margin: 0; padding: 0; width: 100%; height: 100%; background-color: #000; overflow: hidden; font-family: sans-serif; }
-        #camera-view { width: 100%; height: 100%; object-fit: cover; }
-        .overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body, html {
+            width: 100%; height: 100%;
+            background: #000;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            overflow: hidden;
+            color: #fff;
+        }
+
+        /* ── CAMERA SCREEN ── */
+        #screen-camera {
+            position: relative;
+            width: 100%; height: 100%;
+            display: flex; flex-direction: column;
+        }
+
+        #camera-view {
+            position: absolute;
+            width: 100%; height: 100%;
+            object-fit: cover;
+        }
+
+        .overlay {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            pointer-events: none;
+        }
+
         .guide-box {
-            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            width: 70%; height: 60%;
-            border: 3px solid #ff3b30; border-radius: 10px;
-            box-sizing: border-box;
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            width: 55%; height: 65%;
+            border: 2px solid rgba(255,255,255,0.85);
+            border-radius: 12px;
         }
-        .guide-line {
-            position: absolute; top: 50%; left: 0; width: 100%;
-            border-top: 2px dashed #ff3b30;
+
+        .guide-label {
+            position: absolute;
+            top: -28px; left: 50%;
+            transform: translateX(-50%);
+            font-size: 12px;
+            color: rgba(255,255,255,0.8);
+            white-space: nowrap;
+            background: rgba(0,0,0,0.45);
+            padding: 3px 10px;
+            border-radius: 20px;
         }
+
+        .corner {
+            position: absolute;
+            width: 18px; height: 18px;
+            border-color: #ff3b30;
+            border-style: solid;
+        }
+        .corner-tl { top: -2px; left: -2px; border-width: 3px 0 0 3px; border-radius: 4px 0 0 0; }
+        .corner-tr { top: -2px; right: -2px; border-width: 3px 3px 0 0; border-radius: 0 4px 0 0; }
+        .corner-bl { bottom: -2px; left: -2px; border-width: 0 0 3px 3px; border-radius: 0 0 0 4px; }
+        .corner-br { bottom: -2px; right: -2px; border-width: 0 3px 3px 0; border-radius: 0 0 4px 0; }
+
+        .camera-bottom {
+            position: absolute;
+            bottom: 0; left: 0; right: 0;
+            padding: 20px 24px 44px;
+            background: linear-gradient(transparent, rgba(0,0,0,0.7));
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .capacity-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: rgba(0,0,0,0.5);
+            border: 1px solid rgba(255,255,255,0.25);
+            border-radius: 30px;
+            padding: 8px 16px;
+            width: 100%;
+            max-width: 320px;
+        }
+
+        .capacity-row label {
+            font-size: 13px;
+            color: rgba(255,255,255,0.75);
+            white-space: nowrap;
+        }
+
+        .capacity-row input {
+            background: transparent;
+            border: none;
+            outline: none;
+            color: #fff;
+            font-size: 15px;
+            font-weight: 500;
+            width: 70px;
+            text-align: right;
+        }
+
+        .capacity-row input::placeholder { color: rgba(255,255,255,0.35); }
+
+        .capacity-row span {
+            font-size: 13px;
+            color: rgba(255,255,255,0.55);
+        }
+
         #capture-btn {
-            position: absolute; bottom: 40px; left: 50%; transform: translateX(-50%);
-            padding: 15px 40px; font-size: 18px; font-weight: bold;
-            background-color: white; color: black;
-            border: none; border-radius: 30px;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.3); cursor: pointer;
+            width: 68px; height: 68px;
+            border-radius: 50%;
+            background: #fff;
+            border: 4px solid rgba(255,255,255,0.4);
+            cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 26px;
+            box-shadow: 0 0 0 3px rgba(255,255,255,0.15);
+            transition: transform 0.1s;
+            flex-shrink: 0;
         }
-        #capture-btn:active { background-color: #ddd; }
+
+        #capture-btn:active { transform: scale(0.93); }
+
+        /* ── RESULT SCREEN ── */
+        #screen-result {
+            display: none;
+            width: 100%; height: 100%;
+            background: #000;
+            overflow-y: auto;
+        }
+
+        .preview-wrap {
+            position: relative;
+            width: 100%;
+            max-height: 42vh;
+            overflow: hidden;
+        }
+
+        #preview-img {
+            width: 100%;
+            height: 42vh;
+            object-fit: cover;
+            display: block;
+        }
+
+        .preview-badge {
+            position: absolute;
+            bottom: 12px; right: 12px;
+            background: rgba(0,0,0,0.65);
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 20px;
+            padding: 5px 12px;
+            font-size: 12px;
+            color: rgba(255,255,255,0.8);
+        }
+
+        .result-body {
+            padding: 20px 20px 40px;
+        }
+
+        .result-title {
+            font-size: 17px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            color: #fff;
+        }
+
+        /* loading state */
+        #loading-state {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 14px;
+            padding: 32px 0;
+        }
+
+        .spinner {
+            width: 36px; height: 36px;
+            border: 3px solid rgba(255,255,255,0.15);
+            border-top-color: #fff;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        #loading-state p {
+            font-size: 14px;
+            color: rgba(255,255,255,0.6);
+        }
+
+        /* result cards */
+        #result-cards { display: none; }
+
+        .cards-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+
+        .card {
+            background: rgba(255,255,255,0.07);
+            border: 1px solid rgba(255,255,255,0.12);
+            border-radius: 14px;
+            padding: 14px 16px;
+        }
+
+        .card-label {
+            font-size: 11px;
+            color: rgba(255,255,255,0.5);
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            margin-bottom: 6px;
+        }
+
+        .card-value {
+            font-size: 26px;
+            font-weight: 700;
+            color: #fff;
+        }
+
+        .card-value span {
+            font-size: 14px;
+            font-weight: 400;
+            color: rgba(255,255,255,0.55);
+            margin-left: 3px;
+        }
+
+        .card-full {
+            grid-column: 1 / -1;
+        }
+
+        /* fill bar */
+        .fill-bar-wrap {
+            margin-top: 6px;
+            height: 8px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 99px;
+            overflow: hidden;
+        }
+
+        .fill-bar {
+            height: 100%;
+            border-radius: 99px;
+            background: #30d158;
+            transition: width 0.6s ease;
+        }
+
+        .fill-bar.low { background: #ff3b30; }
+        .fill-bar.mid { background: #ffd60a; }
+
+        .fill-bar-labels {
+            display: flex;
+            justify-content: space-between;
+            font-size: 11px;
+            color: rgba(255,255,255,0.4);
+            margin-top: 4px;
+        }
+
+        /* AI analysis */
+        .analysis-box {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 14px;
+            padding: 14px 16px;
+            margin-top: 12px;
+        }
+
+        .analysis-box .card-label { margin-bottom: 8px; }
+
+        .analysis-box p {
+            font-size: 14px;
+            line-height: 1.6;
+            color: rgba(255,255,255,0.75);
+        }
+
+        /* error */
+        #error-state {
+            display: none;
+            text-align: center;
+            padding: 32px 0;
+        }
+
+        #error-state .err-icon { font-size: 36px; margin-bottom: 10px; }
+
+        #error-state p {
+            font-size: 14px;
+            color: rgba(255,255,255,0.55);
+            margin-bottom: 16px;
+        }
+
+        /* buttons */
+        .btn-row {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .btn {
+            flex: 1;
+            padding: 14px;
+            border-radius: 14px;
+            font-size: 15px;
+            font-weight: 600;
+            border: none;
+            cursor: pointer;
+            transition: opacity 0.15s;
+        }
+
+        .btn:active { opacity: 0.75; }
+
+        .btn-primary {
+            background: #fff;
+            color: #000;
+        }
+
+        .btn-secondary {
+            background: rgba(255,255,255,0.1);
+            color: #fff;
+            border: 1px solid rgba(255,255,255,0.15);
+        }
     </style>
 </head>
 <body>
 
-    <!-- จุดที่แก้ไขที่ 1: เพิ่มคำว่า muted เข้าไป -->
+<!-- ════════════════════ CAMERA SCREEN ════════════════════ -->
+<div id="screen-camera">
     <video id="camera-view" autoplay playsinline muted></video>
 
     <div class="overlay">
         <div class="guide-box">
-            <div class="guide-line"></div>
+            <div class="guide-label">จัดขวดให้อยู่ในกรอบ</div>
+            <div class="corner corner-tl"></div>
+            <div class="corner corner-tr"></div>
+            <div class="corner corner-bl"></div>
+            <div class="corner corner-br"></div>
         </div>
     </div>
 
-    <button id="capture-btn">📷 ถ่ายภาพเพื่อคำนวณ</button>
+    <div class="camera-bottom">
+        <div class="capacity-row">
+            <label>ความจุขวด</label>
+            <input id="bottle-capacity" type="number" inputmode="numeric" placeholder="500" value="500">
+            <span>มล.</span>
+        </div>
+        <button id="capture-btn" aria-label="ถ่ายภาพ">📷</button>
+    </div>
+</div>
 
-    <script>
-        const video = document.getElementById('camera-view');
-        const captureBtn = document.getElementById('capture-btn');
+<!-- ════════════════════ RESULT SCREEN ════════════════════ -->
+<div id="screen-result">
+    <div class="preview-wrap">
+        <img id="preview-img" alt="ภาพขวด ICD">
+        <div class="preview-badge" id="preview-badge">กำลังวิเคราะห์...</div>
+    </div>
 
-        // จุดที่แก้ไขที่ 2: ปรับ facingMode ให้รองรับมือถือหลายรุ่นขึ้น
-        navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' } } })
-            .then(function(stream) {
-                video.srcObject = stream;
-                
-                // จุดที่แก้ไขที่ 3: บังคับให้เล่นวิดีโอเมื่อโหลดสตรีมเสร็จ
-                video.onloadedmetadata = function(e) {
-                    video.play();
-                };
+    <div class="result-body">
+        <div class="result-title">ผลการวิเคราะห์</div>
+
+        <!-- loading -->
+        <div id="loading-state">
+            <div class="spinner"></div>
+            <p>AI กำลังวิเคราะห์ปริมาณน้ำ...</p>
+        </div>
+
+        <!-- cards -->
+        <div id="result-cards">
+            <div class="cards-row">
+                <div class="card">
+                    <div class="card-label">ปริมาณน้ำที่เหลือ</div>
+                    <div class="card-value" id="val-remaining">—<span>มล.</span></div>
+                </div>
+                <div class="card">
+                    <div class="card-label">ระดับน้ำ</div>
+                    <div class="card-value" id="val-percent">—<span>%</span></div>
+                </div>
+            </div>
+
+            <div class="card card-full">
+                <div class="card-label">ระดับน้ำในขวด</div>
+                <div class="fill-bar-wrap">
+                    <div class="fill-bar" id="fill-bar" style="width: 0%"></div>
+                </div>
+                <div class="fill-bar-labels">
+                    <span>0%</span>
+                    <span id="capacity-label">100% (500 มล.)</span>
+                </div>
+            </div>
+
+            <div class="analysis-box">
+                <div class="card-label">การวิเคราะห์จาก AI</div>
+                <p id="ai-analysis">—</p>
+            </div>
+        </div>
+
+        <!-- error -->
+        <div id="error-state">
+            <div class="err-icon">⚠️</div>
+            <p id="error-msg">ไม่สามารถวิเคราะห์ภาพได้ กรุณาลองอีกครั้ง</p>
+            <button class="btn btn-primary" onclick="retake()">ถ่ายภาพใหม่</button>
+        </div>
+
+        <div class="btn-row" id="result-btn-row" style="display:none;">
+            <button class="btn btn-secondary" onclick="retake()">📷 ถ่ายใหม่</button>
+            <button class="btn btn-primary" onclick="saveResult()">💾 บันทึก</button>
+        </div>
+    </div>
+</div>
+
+<!-- hidden canvas for capture -->
+<canvas id="canvas" style="display:none;"></canvas>
+
+<script>
+const video       = document.getElementById('camera-view');
+const captureBtn  = document.getElementById('capture-btn');
+const canvas      = document.getElementById('canvas');
+const ctx         = canvas.getContext('2d');
+
+const screenCam   = document.getElementById('screen-camera');
+const screenRes   = document.getElementById('screen-result');
+const previewImg  = document.getElementById('preview-img');
+const previewBadge = document.getElementById('preview-badge');
+
+const loadingEl   = document.getElementById('loading-state');
+const cardsEl     = document.getElementById('result-cards');
+const errorEl     = document.getElementById('error-state');
+const btnRow      = document.getElementById('result-btn-row');
+
+let lastCapacityMl = 500;
+let lastResultText = '';
+
+// ── start camera ──
+navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' } } })
+    .then(stream => {
+        video.srcObject = stream;
+        video.onloadedmetadata = () => video.play();
+    })
+    .catch(err => {
+        console.error(err);
+        alert('ไม่สามารถเปิดกล้องได้ กรุณาอนุญาตการใช้งานกล้องในเบราว์เซอร์');
+    });
+
+// ── capture ──
+captureBtn.addEventListener('click', () => {
+    const capacityInput = document.getElementById('bottle-capacity');
+    lastCapacityMl = parseInt(capacityInput.value) || 500;
+
+    canvas.width  = video.videoWidth  || 640;
+    canvas.height = video.videoHeight || 480;
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+    const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+    const base64  = dataUrl.split(',')[1];
+
+    previewImg.src = dataUrl;
+    previewBadge.textContent = 'กำลังวิเคราะห์...';
+    document.getElementById('capacity-label').textContent = `100% (${lastCapacityMl} มล.)`;
+
+    screenCam.style.display = 'none';
+    screenRes.style.display = 'block';
+
+    loadingEl.style.display  = 'flex';
+    cardsEl.style.display    = 'none';
+    errorEl.style.display    = 'none';
+    btnRow.style.display     = 'none';
+
+    analyzeImage(base64, lastCapacityMl);
+});
+
+// ── AI analysis ──
+async function analyzeImage(base64Img, capacityMl) {
+    const prompt = `You are analyzing an image of an ICD (intercostal drain / chest drain) water bottle or medical drainage bottle.
+
+Your task: estimate what percentage of the bottle is filled with water/liquid (0–100%).
+
+Rules:
+- Look carefully at the water level inside the bottle relative to the total bottle height.
+- Account for any angle or perspective distortion.
+- The bottle capacity is ${capacityMl} ml.
+- Return ONLY valid JSON with no markdown, no explanation outside the JSON.
+
+JSON format:
+{
+  "fill_percent": <integer 0-100>,
+  "volume_ml": <integer>,
+  "confidence": "high" | "medium" | "low",
+  "notes": "<brief observation in Thai, max 2 sentences>"
+}
+
+If you cannot see a bottle or determine the fill level, return:
+{"error": "cannot_analyze", "reason": "<reason in Thai>"}`;
+
+    try {
+        const response = await fetch('https://api.anthropic.com/v1/messages', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                model: 'claude-sonnet-4-20250514',
+                max_tokens: 400,
+                messages: [{
+                    role: 'user',
+                    content: [
+                        {
+                            type: 'image',
+                            source: { type: 'base64', media_type: 'image/jpeg', data: base64Img }
+                        },
+                        { type: 'text', text: prompt }
+                    ]
+                }]
             })
-            .catch(function(error) {
-                console.error("เกิดข้อผิดพลาดในการเข้าถึงกล้อง: ", error);
-                alert("ระบบไม่สามารถเปิดกล้องได้ กรุณาตรวจสอบการอนุญาตในตั้งค่าของเบราว์เซอร์");
-            });
-
-        captureBtn.addEventListener('click', function() {
-            alert("บันทึกภาพสำเร็จ! (จำลองการกดถ่าย)");
         });
-    </script>
+
+        const data = await response.json();
+        const raw  = (data.content || []).map(b => b.text || '').join('');
+        const clean = raw.replace(/```json|```/g, '').trim();
+        const parsed = JSON.parse(clean);
+
+        if (parsed.error) {
+            showError(parsed.reason || 'ไม่สามารถวิเคราะห์ภาพได้');
+            return;
+        }
+
+        showResult(parsed, capacityMl);
+
+    } catch (err) {
+        console.error(err);
+        showError('เกิดข้อผิดพลาดในการเชื่อมต่อ กรุณาลองอีกครั้ง');
+    }
+}
+
+function showResult(data, capacityMl) {
+    const pct       = Math.min(100, Math.max(0, data.fill_percent || 0));
+    const volumeMl  = Math.round(capacityMl * pct / 100);
+
+    document.getElementById('val-remaining').innerHTML = `${volumeMl}<span>มล.</span>`;
+    document.getElementById('val-percent').innerHTML   = `${pct}<span>%</span>`;
+    document.getElementById('ai-analysis').textContent = data.notes || '—';
+
+    const bar = document.getElementById('fill-bar');
+    bar.style.width = pct + '%';
+    bar.className = 'fill-bar' + (pct < 25 ? ' low' : pct < 60 ? ' mid' : '');
+
+    const conf = { high: 'สูง', medium: 'ปานกลาง', low: 'ต่ำ' }[data.confidence] || '—';
+    previewBadge.textContent = `ความมั่นใจ: ${conf}`;
+
+    lastResultText = `ปริมาณน้ำ ${volumeMl} มล. (${pct}%) จากขวดขนาด ${capacityMl} มล.`;
+
+    loadingEl.style.display = 'none';
+    cardsEl.style.display   = 'block';
+    btnRow.style.display    = 'flex';
+}
+
+function showError(msg) {
+    document.getElementById('error-msg').textContent = msg;
+    loadingEl.style.display = 'none';
+    errorEl.style.display   = 'block';
+    previewBadge.textContent = 'วิเคราะห์ไม่สำเร็จ';
+}
+
+function retake() {
+    screenRes.style.display = 'none';
+    screenCam.style.display = 'block';
+}
+
+function saveResult() {
+    alert('บันทึก: ' + lastResultText);
+}
+</script>
 </body>
 </html>
