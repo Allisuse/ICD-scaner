@@ -434,6 +434,36 @@ function saveResult(){
   if(navigator.share)navigator.share({title:'ICD Scan',text:lastResultText}).catch(()=>{});
   else alert('บันทึก: '+lastResultText);
 }
+  {async function analyze(b64, capMl){
+  try{
+    const res = await fetch("https://YOUR_RENDER_URL/analyze", {
+      method:"POST",
+      headers:{ "Content-Type":"application/json" },
+      body: JSON.stringify({
+        image_b64: b64,
+        capacity: capMl
+      })
+    });
+
+    const parsed = await res.json();
+
+    if(parsed.error){
+      showErr("ตรวจจับระดับน้ำไม่ได้");
+      return;
+    }
+
+    renderCards({
+      fill_ml: parsed.fill_ml,
+      fill_percent: parsed.fill_percent,
+      confidence: "high",
+      notes: "ตรวจจับระดับน้ำจากภาพสำเร็จ"
+    }, capMl);
+
+  }catch(e){
+    console.error(e);
+    showErr("เชื่อมต่อ Server ไม่ได้");
+  }
+
 </script>
 </body>
 </html>
